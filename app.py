@@ -6,7 +6,7 @@ from db_config import *
 
 app = Flask(__name__)
 
-ENV = 'prod'
+ENV = 'dev'
 
 if ENV == 'dev':
     app.debug = True
@@ -57,7 +57,7 @@ reports_schema = ReportSchema(many=True)
 # Root URL
 @app.route('/')
 def index():
-    return jsonify({'res' : 'index.html'})
+    return jsonify({'message' : 'Welcome to Bafot Farms'})
 
 
 # Create new report
@@ -71,15 +71,19 @@ def add_report():
     medication = request.json['medication']
   
     report_exist = PenRecord.query.filter(PenRecord.name==name).first()
-    if len(report_schema.dump(report_exist)) != 0:
-        return jsonify({'message' : 'pen already has a record'})
+    report_dump = report_schema.dump(report_exist)
+    x = datetime.now()
+    if len(report_dump) != 0:
+        # print(report_dump['date'][8:10], x.strftime('%d'))
+        if report_dump['date'][8:10] == x.strftime('%d'):
+            return jsonify({'message' : 'pen already has a record'})
 
     report = PenRecord(name, population, mortality, consumption, production, medication)
     db.session.add(report)
     db.session.commit()
     new_report = PenRecord.query.order_by(PenRecord.date.desc()).first()
 
-    print(report, new_report)
+    # print(report, new_report)
     return report_schema.jsonify(new_report)
 
 
@@ -88,7 +92,9 @@ def add_report():
 def get_reports():
     reports = PenRecord.query.all()
     result = reports_schema.dump(reports)
-    print(reports, result)
+    # print(reports, result)
+    if len(result) == 0:
+        return jsonify({ 'message' : 'No report available' })
 
     return jsonify(result)
 
@@ -97,7 +103,7 @@ def get_reports():
 @app.route('/report/<id>', methods=['GET'])
 def get_report(id):
     report = PenRecord.query.get(id)
-    print(report)
+    # print(report)
 
     return report_schema.jsonify(report)
 
@@ -114,6 +120,8 @@ def update_report(id):
     production = request.json['production']
     medication = request.json['medication']
 
+    if report is None:
+        return jsonify({'message' : 'report not available!'})
     report.name = name
     report.population = population
     report.mortality = mortality
@@ -123,7 +131,7 @@ def update_report(id):
 
     db.session.commit()
 
-    print(report)
+    # print(report)
 
     # return report_schema.jsonify(report)
     return jsonify({'message' : 'report successfully updated'})
@@ -138,7 +146,7 @@ def delete_report(id):
 
     db.session.delete(report)
     db.session.commit()
-    print(report)
+    # print(report)
 
     return jsonify({'message' : 'report successfully deleted'})
 
