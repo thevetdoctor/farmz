@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from datetime import datetime
-from os import os
+import os
 
 print(os.environ['USERNAME'])
 
@@ -15,7 +15,6 @@ else:
 
 if ENV == 'dev':
     app.debug = True
-    # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/test.db'
     app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:animalworld@localhost/flaskrest'
 else:
     app.debug = False 
