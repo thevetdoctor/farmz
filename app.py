@@ -113,7 +113,7 @@ def get_report(id):
     # print(report)
     if report is None:
         return jsonify({'message' : 'report not available!'})
-        
+    
     return report_schema.jsonify(report)
 
 
