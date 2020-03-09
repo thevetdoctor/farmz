@@ -8,7 +8,7 @@ print(os.environ['USERNAME'])
 
 app = Flask(__name__)
 
-if os.environ['USERNAME'] == 'ACER':
+if os.environ.get('USERNAME') == 'ACER':
     ENV = 'dev'
 else:
     ENV = 'prod'
