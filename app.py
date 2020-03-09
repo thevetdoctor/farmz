@@ -2,16 +2,16 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from datetime import datetime
-import os
+# import os
 
-print(os.environ['USERNAME'])
+# print(os.environ['USERNAME'])
 
 app = Flask(__name__)
 
-if os.environ.get('USERNAME') == 'ACER':
-    ENV = 'dev'
-else:
-    ENV = 'prod'
+# if os.environ.get('USERNAME') == 'ACER':
+#     ENV = 'dev'
+# else:
+ENV = 'prod'
 
 if ENV == 'dev':
     app.debug = True
