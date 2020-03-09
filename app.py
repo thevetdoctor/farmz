@@ -2,11 +2,16 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from datetime import datetime
-from db_config import *
+import os
+
+print(os.environ['USERNAME'])
 
 app = Flask(__name__)
 
-ENV = 'dev'
+if os.environ['USERNAME'] == 'ACER':
+    ENV = 'dev'
+else:
+    ENV = 'prod'
 
 if ENV == 'dev':
     app.debug = True
@@ -15,6 +20,8 @@ if ENV == 'dev':
 else:
     app.debug = False 
     app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://vxjxpdpdiwnrqw:55e5e567b888401056b662421a387e5e830a0a30fce8d64046f112d37b04135b@ec2-18-210-51-239.compute-1.amazonaws.com:5432/d5obp1t1cedffb'
+
+print(ENV)
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -104,7 +111,9 @@ def get_reports():
 def get_report(id):
     report = PenRecord.query.get(id)
     # print(report)
-
+    if report is None:
+        return jsonify({'message' : 'report not available!'})
+        
     return report_schema.jsonify(report)
 
 
