@@ -2,11 +2,14 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from datetime import datetime
+from flask_cors import CORS
 # import os
 
 # print(os.environ['USERNAME'])
 
 app = Flask(__name__)
+
+CORS(app)
 
 # if os.environ.get('USERNAME') == 'ACER':
 #     ENV = 'dev'
