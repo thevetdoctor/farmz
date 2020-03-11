@@ -79,10 +79,11 @@ def add_report():
     production = request.json['production']
     medication = request.json['medication']
   
-    report_exist = PenRecord.query.filter(PenRecord.name==name).first()
+    report_exist = PenRecord.query.filter(PenRecord.name==name).order_by(PenRecord.date.desc()).first()
     report_dump = report_schema.dump(report_exist)
     x = datetime.now()
     if len(report_dump) != 0:
+        # print(report_dump['date'], x)
         # print(report_dump['date'][8:10], x.strftime('%d'))
         if report_dump['date'][8:10] == x.strftime('%d'):
             return jsonify({'message' : 'pen already has a record'})
@@ -92,7 +93,7 @@ def add_report():
     db.session.commit()
     new_report = PenRecord.query.order_by(PenRecord.date.desc()).first()
 
-    # print(report, new_report)
+    print(report, new_report)
     return report_schema.jsonify(new_report)
 
 
