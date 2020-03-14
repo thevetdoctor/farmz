@@ -1,0 +1,65 @@
+body {
+    /* width: 80%; */
+    height: 80vh;
+    margin: 0 auto;
+    background-color: #099;
+    font-family: 'Raleway', sans-serif;
+    font-size: 1.2em;
+    text-align: center;
+    color: #fff;}
+
+a {
+    font-size: 1.2em;
+}
+
+input, select {
+    width: 5em;
+    border-radius: 0.5em;
+    font-size: 0.8em;
+    color: #fff;
+    padding: 0.4em;
+    margin: 0.3em;
+}
+
+input::placeholder {
+    border-radius: 0.5em;
+    font-size: 0.8em;
+    color: #fff;
+    padding: 0.2em;
+}
+
+.heading {
+    font-size: 2em;
+}
+
+/* .view {
+    display: flex;
+    justify-content: center;
+    border-bottom: none;
+    overflow: auto;
+} */
+
+.view-top {
+    display: flex;
+    justify-content: center;
+    background-color: #000;
+}
+
+/* .view span { */
+    /* border: 1px solid; */
+    /* flex-basis: 25%; */
+/* } */
+
+.footer {
+    position: relative;;
+    /* bottom: 1em; */
+    margin-top: 12em;
+    font-size: 0.8em;
+    text-align: center;
+}
+
+@media screen and (max-width: 400px) {
+    body {
+        font-size: 0.7em;
+    }
+}
