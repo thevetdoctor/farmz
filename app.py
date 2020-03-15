@@ -5,6 +5,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from datetime import datetime
 from flask_cors import CORS
+import jwt
+import math
 import os
 
 # print(os.environ['USERNAME'])
@@ -94,17 +96,37 @@ class PenRecord(db.Model):
         self.medication = medication
         self.date = date
 
+
+class User(db.Model):
+    __tablename__ = 'user'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50))
+    password = db.Column(db.String(100))
+    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    def __init__(self, name, password):
+        self.name = name
+        self.password = password
+
  
 # Report Schema
 class ReportSchema(marsh.Schema):
     class Meta:
         fields = ('id', 'name', 'population', 'mortality', 'consumption', 'production', 'medication', 'date')
 
+# user Schema
+class UserSchema(marsh.Schema):
+    class Meta:
+        fields = ('id', 'name', 'password', 'date')
+
 # Init schema
 # report_schema = ReportSchema(strict=True)
 # reports_schema = ReportSchema(many=True, strict=True)
 report_schema = ReportSchema()
 reports_schema = ReportSchema(many=True)
+
+user_schema = UserSchema()
+users_schema = UserSchema(many=True)
 
 c = datetime.utcnow()
 # d = datetime(2020, 3, 12)
@@ -115,16 +137,72 @@ c = datetime.utcnow()
 def index():
     return jsonify({'message' : 'Welcome to Bafot Farms'}), 200
 
+ 
+# Create new user
+@app.route('/auth/createuser', methods=['POST'])
+def create_user():
+    name = request.json['name']
+    password = request.json['password']
+    for attr in request.json:
+        request.json[attr] = request.json[attr].replace('/', '')
+        if request.json[attr] == '':
+          return jsonify({'message' : '{} not supplied'.format(attr)}), 404
+    user_found = User.query.filter(User.name==name).first()
+    user_found_dump = user_schema.dump(user_found)
+    print(user_found_dump)
+    if len(user_found_dump):
+        return jsonify({'message' : 'user exist already'}), 404
+
+    user = User(name, password)
+    db.session.add(user)
+    db.session.commit()
+    print(user)
+    return jsonify({ 'data' : user_schema.dump(user), 'user' : user['name'], 'message' : 'new user created'}), 201
+
+
+# Create new user
+@app.route('/auth/signin', methods=['POST'])
+def user_signin():
+    name = request.json['name']
+    password = request.json['password']
+    for attr in request.json:
+        request.json[attr] = request.json[attr].replace('/', '')
+        if request.json[attr] == '':
+          return jsonify({'message' : '{} not supplied'.format(attr)}), 404
+    user_found = User.query.filter(User.name==name).first()
+    user_found_dump = user_schema.dump(user_found)
+    print(user_found_dump)
+    if len(user_found_dump):
+        if user_found_dump['password'] == password:
+            return jsonify({'user' : user_found_dump['name'], 'message' : 'user signed in'}), 200
+        return jsonify({'message' : 'invalid password'}), 200
+    return jsonify({'message' : 'user not found'}), 404
+    # return jsonify({'message' : 'sign in failed'}), 404
+
+    
+#Get all users
+@app.route('/auth/users', methods=['GET'])
+def get_users():
+    user_list = User.query.all()
+    user_list_dump = users_schema.dump(user_list)
+    print(user_list_dump)
+    if len(user_list_dump):
+        return jsonify(user_list_dump), 200
+    return jsonify({'message' : 'No user found'}), 404
+    
 
 # Create new report
 @app.route('/report', methods=['POST'])
 def add_report():
     name = request.json['name']
-    # population = request.json['population']
     mortality = request.json['mortality']
     consumption = request.json['consumption']
     production = request.json['production']
     medication = request.json['medication']
+    for attr in request.json:
+        request.json[attr] = request.json[attr].replace('/', '')
+        if request.json[attr] == '':
+          return jsonify({'message' : '{} not supplied'.format(attr)}), 404
     if 'date' in request.json:
         date = request.json['date']
         population = request.json['population']
@@ -132,7 +210,7 @@ def add_report():
         report_found_dump = reports_schema.dump(report_found)
         for rep in report_found_dump:
             date_exist = rep['date'][8:10]
-            print(date_exist)
+            # print(date_exist)
             if date == date_exist:
                 return jsonify({'message' : 'record exist already'}), 404
 
@@ -170,20 +248,37 @@ def add_report():
             new_report = PenRecord.query.order_by(PenRecord.date.desc()).first()
 
             # print(report, new_report)
-        return jsonify(report_schema.dump(new_report)), 201
-        # return jsonify({'message' : 'pen already has a record2'}), 404
+        return jsonify({ 'data' : report_schema.dump(new_report), 'message' : 'New report created!'}), 201
 
 
 # Get all reports
 @app.route('/report', methods=['GET'])
-def get_reports():
-    reports = PenRecord.query.order_by(PenRecord.date.desc()).all()
+@app.route('/report/page/<int:page>/<int:pp>', methods=['GET'])
+def get_reports(page=1, pp=3):
+    # try:
+    #     # reports = PenRecord.query.order_by(PenRecord.date.desc()).all()
+    #     reports = PenRecord.query.order_by(PenRecord.date.desc()).paginate(page, per_page=6)
+    #     result = reports_schema.dump(reports)
+    # except e:
+    #     flash('No report found!')
+    #     reports = None
+    #     result = reports_schema.dump(reports)
+
+    reportAll = PenRecord.query.order_by(PenRecord.date.desc()).all()
+    reportCount = len(reports_schema.dump(reportAll))
+ 
+    print(reportCount, page, pp, math.floor(reportCount / pp), (reportCount % pp))
+    limit = math.floor(reportCount / pp) + 1
+    if(page > (limit)):
+        return jsonify({ 'message' : 'No report available beyond this point', 'prev' : bool(1), 'next': bool(0) }), 400
+  
+    reports = PenRecord.query.order_by(PenRecord.date.desc()).paginate(page, per_page=pp).items
+    print(reports, page, pp)
     result = reports_schema.dump(reports)
-    # print(reports, result)
-    if len(result) == 0:
+    if reportCount == 0:
         return jsonify({ 'message' : 'No report available' }), 200
 
-    return jsonify(result), 200
+    return jsonify({ 'data' : result, 'page' : page, 'pages' : limit, 'prev' : bool(1), 'next': bool(1) }), 200
 
  
 # Get single report
@@ -223,8 +318,8 @@ def update_report(id):
     # print(report)
 
     # return report_schema.jsonify(report)
-    return jsonify({'message' : 'report successfully updated'}, 204)
-    return make_response({'message' : 'report successfully updated'}, 204)
+    return jsonify({'message' : 'report successfully updated'}), 204
+    # return make_response({'message' : 'report successfully updated'}, 204) 
 
 
 # Delete single report
