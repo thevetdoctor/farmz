@@ -18,7 +18,7 @@ CORS(app)
 # if os.environ.get('USERNAME') == 'ACER':
 #     ENV = 'dev'
 # else:
-ENV = 'prod'
+ENV = 'dev'
 
 if ENV == 'dev':
     app.debug = True
@@ -143,6 +143,9 @@ def index():
 def create_user():
     name = request.json['name']
     password = request.json['password']
+    password1 = request.json['password1']
+    if password != password1:
+          return jsonify({'message' : 'Different password(s) supplied'}), 404
     for attr in request.json:
         request.json[attr] = request.json[attr].replace('/', '')
         if request.json[attr] == '':
@@ -157,7 +160,7 @@ def create_user():
     db.session.add(user)
     db.session.commit()
     print(user)
-    return jsonify({ 'data' : user_schema.dump(user), 'user' : user['name'], 'message' : 'new user created'}), 201
+    return jsonify({ 'data' : user_schema.dump(user), 'user' : user_schema.dump(user)['name'], 'message' : 'new user created'}), 201
 
 
 # Create new user
@@ -267,18 +270,19 @@ def get_reports(page=1, pp=3):
     reportAll = PenRecord.query.order_by(PenRecord.date.desc()).all()
     reportCount = len(reports_schema.dump(reportAll))
  
-    print(reportCount, page, pp, math.floor(reportCount / pp), (reportCount % pp))
+    # print(reportCount, page, pp, math.floor(reportCount / pp), (reportCount % pp))
     limit = math.floor(reportCount / pp) + 1
     if(page > (limit)):
         return jsonify({ 'message' : 'No report available beyond this point', 'prev' : bool(1), 'next': bool(0) }), 400
   
     reports = PenRecord.query.order_by(PenRecord.date.desc()).paginate(page, per_page=pp).items
-    print(reports, page, pp)
+    print(page, limit, pp)
     result = reports_schema.dump(reports)
     if reportCount == 0:
         return jsonify({ 'message' : 'No report available' }), 200
 
-    return jsonify({ 'data' : result, 'page' : page, 'pages' : limit, 'prev' : bool(1), 'next': bool(1) }), 200
+    # return jsonify({ 'data' : result, 'page' : page, 'pages' : limit, 'prev' : bool(1), 'next': bool(1) }), 200
+    return jsonify({ 'data' : result, 'page' : page, 'pages' : limit, 'prev' : bool(page > 1), 'next': bool(limit - page) }), 200
 
  
 # Get single report
