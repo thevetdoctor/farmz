@@ -1,5 +1,4 @@
-from flask import Flask, request, jsonify, make_response
-from flask import Flask, flash, request, render_template, redirect, url_for
+from flask import Flask, flash, request, jsonify,render_template, redirect, url_for, make_response
 from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
@@ -8,7 +7,7 @@ from flask_cors import CORS
 import jwt
 import math
 import os
-
+# from main import db
 # print(os.environ['USERNAME'])
 
 app = Flask(__name__)
@@ -152,18 +151,18 @@ def create_user():
           return jsonify({'message' : '{} not supplied'.format(attr)}), 404
     user_found = User.query.filter(User.name==name).first()
     user_found_dump = user_schema.dump(user_found)
-    print(user_found_dump)
+    # print(user_found_dump)
     if len(user_found_dump):
         return jsonify({'message' : 'user exist already'}), 404
 
     user = User(name, password)
     db.session.add(user)
     db.session.commit()
-    print(user)
+    # print(user)
     return jsonify({ 'data' : user_schema.dump(user), 'user' : user_schema.dump(user)['name'], 'message' : 'new user created'}), 201
 
 
-# Create new user
+# Sign in user
 @app.route('/auth/signin', methods=['POST'])
 def user_signin():
     name = request.json['name']
@@ -174,7 +173,7 @@ def user_signin():
           return jsonify({'message' : '{} not supplied'.format(attr)}), 404
     user_found = User.query.filter(User.name==name).first()
     user_found_dump = user_schema.dump(user_found)
-    print(user_found_dump)
+    # print(user_found_dump)
     if len(user_found_dump):
         if user_found_dump['password'] == password:
             return jsonify({'user' : user_found_dump['name'], 'message' : 'user signed in'}), 200
@@ -188,7 +187,7 @@ def user_signin():
 def get_users():
     user_list = User.query.all()
     user_list_dump = users_schema.dump(user_list)
-    print(user_list_dump)
+    # print(user_list_dump)
     if len(user_list_dump):
         return jsonify(user_list_dump), 200
     return jsonify({'message' : 'No user found'}), 404
@@ -213,14 +212,15 @@ def add_report():
         report_found_dump = reports_schema.dump(report_found)
         for rep in report_found_dump:
             date_exist = rep['date'][8:10]
-            # print(date_exist)
+            print(date_exist)
+
             if date == date_exist:
                 return jsonify({'message' : 'record exist already'}), 404
 
         report = PenRecord(name, population, mortality, consumption, production, medication, date=c.replace(day=int(date)))
         db.session.add(report)
         db.session.commit()
-        print(report)
+        # print(report)
         return jsonify(report_schema.dump(report)), 201
 
     report_exist = PenRecord.query.filter(PenRecord.name==name).order_by(PenRecord.date.desc()).first()
