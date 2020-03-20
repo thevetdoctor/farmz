@@ -17,7 +17,7 @@ CORS(app)
 # if os.environ.get('USERNAME') == 'ACER':
 #     ENV = 'dev'
 # else:
-ENV = 'prod'
+ENV = 'dev'
 
 if ENV == 'dev':
     app.debug = True
@@ -272,7 +272,7 @@ def get_reports(page=1, pp=3):
  
     # print(reportCount, page, pp, math.floor(reportCount / pp), (reportCount % pp))
     limit = math.floor(reportCount / pp) + 1
-    if(page > (limit)):
+    if(page > limit):
         return jsonify({ 'message' : 'No report available beyond this point', 'prev' : bool(1), 'next': bool(0) }), 400
   
     reports = PenRecord.query.order_by(PenRecord.date.desc()).paginate(page, per_page=pp).items
@@ -280,7 +280,8 @@ def get_reports(page=1, pp=3):
     result = reports_schema.dump(reports)
     if reportCount == 0:
         return jsonify({ 'message' : 'No report available' }), 200
-
+    if reportCount == pp:
+        limit = 1
     # return jsonify({ 'data' : result, 'page' : page, 'pages' : limit, 'prev' : bool(1), 'next': bool(1) }), 200
     return jsonify({ 'data' : result, 'page' : page, 'pages' : limit, 'prev' : bool(page > 1), 'next': bool(limit - page) }), 200
 
