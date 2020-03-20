@@ -17,7 +17,7 @@ CORS(app)
 # if os.environ.get('USERNAME') == 'ACER':
 #     ENV = 'dev'
 # else:
-ENV = 'dev'
+ENV = 'prod'
 
 if ENV == 'dev':
     app.debug = True
