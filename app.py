@@ -7,7 +7,8 @@ from flask_cors import CORS
 import jwt
 import math
 import os
-# from main import db
+from seed import record as data
+
 # print(os.environ['USERNAME'])
 
 app = Flask(__name__)
@@ -34,64 +35,41 @@ db = SQLAlchemy(app)
 marsh = Marshmallow(app)
 
 
-UPLOAD_FOLDER = 'C:\\Users\\ACER\\Desktop\\projects'
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'mp4'}
-
-# app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-@app.route('/upload', methods=['GET', 'POST'])
-def upload_file():
-    if request.method == 'POST':
-        # check if the post request has the file part
-        if 'file' not in request.files:
-            flash('No file part')
-            return redirect(request.url)
-        file = request.files['file']
-        # if user does not select file, browser also
-        # submit an empty part without filename
-        if file.filename == '':
-            flash('No selected file')
-            return redirect(request.url)
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            return redirect(url_for('upload_file',
-                                    filename=filename))
-    return render_template('upload.html')
-    # return '''
-    # <!doctype html>
-    # <title>Upload new File</title>
-    # <h1>Upload new File</h1>
-    # <form method=post enctype=multipart/form-data>
-    #   <input type=file name=file>
-    #   <input type=submit value=Click2Upload>
-    # </form>
-    # '''
-
-
 class PenRecord(db.Model):
     __tablename__ = 'penrecord'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50))
     population = db.Column(db.Integer)
-    mortality = db.Column(db.Integer)
+    mortality = db.Column(db.Integer, default=0)
+    dressed = db.Column(db.Integer, default=0)
     consumption = db.Column(db.Integer)
+    feedbrand = db.Column(db.String(20), default='olam')
     production = db.Column(db.Integer)
-    medication = db.Column(db.String(200))
+    jumbo = db.Column(db.Integer, default=0)
+    extra = db.Column(db.Integer, default=0)
+    large = db.Column(db.Integer, default=0)
+    small = db.Column(db.Integer, default=0)
+    pullet = db.Column(db.Integer, default=0)
+    crack = db.Column(db.Integer, default=0)
+    wastage = db.Column(db.Integer, default=0)
+    medication = db.Column(db.String(200), default='none')
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
-    def __init__(self, name, population, mortality, consumption, production, medication, date=None):
+    def __init__(self, name, population, mortality, dressed, consumption, feedbrand, production, jumbo, extra, large, small, pullet, crack, wastage, medication, date=None):
         self.name = name
         self.population = population
         self.mortality = mortality
+        self.dressed = dressed
         self.consumption = consumption
+        self.feedbrand = feedbrand
         self.production = production
+        self.jumbo = jumbo
+        self.extra = extra
+        self.large = large
+        self.small = small
+        self.pullet = pullet
+        self.crack = crack
+        self.wastage = wastage
         self.medication = medication
         self.date = date
 
@@ -111,7 +89,7 @@ class User(db.Model):
 # Report Schema
 class ReportSchema(marsh.Schema):
     class Meta:
-        fields = ('id', 'name', 'population', 'mortality', 'consumption', 'production', 'medication', 'date')
+        fields = ('id', 'name', 'population', 'mortality', 'dressed', 'consumption', 'feedbrand', 'production', 'jumbo', 'extra', 'large', 'small', 'pullet', 'crack', 'wastage', 'medication', 'date')
 
 # user Schema
 class UserSchema(marsh.Schema):
@@ -128,7 +106,7 @@ user_schema = UserSchema()
 users_schema = UserSchema(many=True)
 
 c = datetime.utcnow()
-# d = datetime(2020, 3, 12)
+d = datetime(2020, 3, 12)
 # print(c, d, c.replace(day=9), d.replace(day=9))
 
 # Root URL
@@ -173,13 +151,12 @@ def user_signin():
           return jsonify({'message' : '{} not supplied'.format(attr)}), 404
     user_found = User.query.filter(User.name==name).first()
     user_found_dump = user_schema.dump(user_found)
-    # print(user_found_dump)
+    print(len(user_found_dump), user_found_dump)
     if len(user_found_dump):
         if user_found_dump['password'] == password:
             return jsonify({'user' : user_found_dump['name'], 'message' : 'user signed in'}), 200
-        return jsonify({'message' : 'invalid password'}), 200
+        return jsonify({'message' : 'invalid password'}), 404
     return jsonify({'message' : 'user not found'}), 404
-    # return jsonify({'message' : 'sign in failed'}), 404
 
     
 #Get all users
@@ -189,7 +166,7 @@ def get_users():
     user_list_dump = users_schema.dump(user_list)
     # print(user_list_dump)
     if len(user_list_dump):
-        return jsonify(user_list_dump), 200
+        return jsonify({'users' : user_list_dump, 'number_of_users' : len(user_list_dump) }), 200
     return jsonify({'message' : 'No user found'}), 404
     
 
@@ -198,8 +175,16 @@ def get_users():
 def add_report():
     name = request.json['name']
     mortality = request.json['mortality']
+    dressed = request.json['dressed']
     consumption = request.json['consumption']
-    production = request.json['production']
+    feedbrand = request.json['feedbrand']
+    jumbo = request.json['jumbo']
+    extra = request.json['extra']
+    large = request.json['large']
+    small = request.json['small']
+    pullet = request.json['pullet']
+    crack = request.json['crack']
+    wastage = request.json['wastage']
     medication = request.json['medication']
     for attr in request.json:
         request.json[attr] = request.json[attr].replace('/', '')
@@ -217,7 +202,8 @@ def add_report():
             if date == date_exist:
                 return jsonify({'message' : 'record exist already'}), 404
 
-        report = PenRecord(name, population, mortality, consumption, production, medication, date=c.replace(day=int(date)))
+        production = int(jumbo) + int(extra) + int(large) + int(small) + int(pullet) + int(crack) + int(wastage)
+        report = PenRecord(name, population, mortality, dressed, consumption, feedbrand, production, jumbo, extra, large, small, pullet, crack, wastage, medication, date=c.replace(day=int(date)))
         db.session.add(report)
         db.session.commit()
         # print(report)
@@ -245,9 +231,8 @@ def add_report():
             prev_pop = report_prev_dump[0]['population']
             prev_mort = report_prev_dump[0]['mortality']
             population = int(prev_pop) - int(prev_mort)
-            report = PenRecord(name, population, mortality, consumption, production, medication)
-            db.session.add(report)
-            db.session.commit()
+            production = int(jumbo) + int(extra) + int(large) + int(small) + int(pullet) + int(crack) + int(wastage)
+             
             new_report = PenRecord.query.order_by(PenRecord.date.desc()).first()
 
             # print(report, new_report)
@@ -270,19 +255,20 @@ def get_reports(page=1, pp=3):
     reportAll = PenRecord.query.order_by(PenRecord.date.desc()).all()
     reportCount = len(reports_schema.dump(reportAll))
  
-    # print(reportCount, page, pp, math.floor(reportCount / pp), (reportCount % pp))
-    limit = math.floor(reportCount / pp) + 1
+    print('report count {}, page {}, pages {}, last page report count {}'.format(reportCount, page, pp, math.floor(reportCount / pp), (reportCount % pp)))
+    if reportCount == 0:
+        return jsonify({ 'message' : 'No report available' }), 200
+    if reportCount % pp == 0:
+        limit = math.floor(reportCount / pp)
+    else:
+        limit = math.floor(reportCount / pp) + 1
     if(page > limit):
         return jsonify({ 'message' : 'No report available beyond this point', 'prev' : bool(1), 'next': bool(0) }), 400
   
     reports = PenRecord.query.order_by(PenRecord.date.desc()).paginate(page, per_page=pp).items
-    print(page, limit, pp)
+    # print(page, limit, pp)
     result = reports_schema.dump(reports)
-    if reportCount == 0:
-        return jsonify({ 'message' : 'No report available' }), 200
-    if reportCount == pp:
-        limit = 1
-    # return jsonify({ 'data' : result, 'page' : page, 'pages' : limit, 'prev' : bool(1), 'next': bool(1) }), 200
+    
     return jsonify({ 'data' : result, 'page' : page, 'pages' : limit, 'prev' : bool(page > 1), 'next': bool(limit - page) }), 200
 
  
@@ -339,6 +325,30 @@ def delete_report(id):
     # print(report)
 
     return jsonify({'message' : 'report successfully deleted'}), 200
+
+print(len(data))
+@app.route('/seed', methods=['GET', 'POST'])
+def seed():
+  
+
+    record_exist = PenRecord.query.all()
+    record_dump = reports_schema.dump(record_exist)
+    # print(record_dump)
+    if len(record_dump):
+        return jsonify({ 'message' : 'DB already seeded!'})
+   
+    for rep in data:
+        production = int(rep['jumbo'] + rep['extra'] + rep['large'] + rep['small'] + rep['pullet'] + rep['crack'] + rep['wastage'])
+        
+        consumption = math.floor(rep['population'] * .11 / 25)
+        print('day {}, mortality {}, production {}, population {}, consumption {}, '.format(rep['date'][8:10], rep['mortality'], production, rep['population'], consumption))
+
+        dat = PenRecord(rep['name'], rep['population'], rep['mortality'], rep['dressed'], consumption, rep['feedbrand'], production, rep['jumbo'], rep['extra'], rep['large'], rep['small'], rep['pullet'], rep['crack'], rep['wastage'], rep['medication'], c.replace(day=int(rep['date'][8:10])))
+        db.session.add(dat)
+        db.session.commit()
+    return jsonify({ 'message' : 'seeding completed'})
+
+
 
 if __name__ == '__main__':
     app.run(debug = True)
