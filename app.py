@@ -13,7 +13,7 @@ from seed import record as data
 
 app = Flask(__name__)
 
-CORS(app)
+CORS(app) 
 
 # if os.environ.get('USERNAME') == 'ACER':
 #     ENV = 'dev'
