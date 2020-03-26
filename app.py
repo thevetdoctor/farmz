@@ -13,7 +13,7 @@ from seed import record as data
 
 app = Flask(__name__)
 
-CORS(app) 
+CORS(app)
 
 # if os.environ.get('USERNAME') == 'ACER':
 #     ENV = 'dev'
@@ -25,7 +25,8 @@ if ENV == 'dev':
     app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:animalworld@localhost/flaskrest'
 else:
     app.debug = False 
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://vxjxpdpdiwnrqw:55e5e567b888401056b662421a387e5e830a0a30fce8d64046f112d37b04135b@ec2-18-210-51-239.compute-1.amazonaws.com:5432/d5obp1t1cedffb'
+    # app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://vxjxpdpdiwnrqw:55e5e567b888401056b662421a387e5e830a0a30fce8d64046f112d37b04135b@ec2-18-210-51-239.compute-1.amazonaws.com:5432/d5obp1t1cedffb'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://snnemmtjbvdsls:40e156cf3c697687901f8569071deff7cf0c307ad827f1f1ae24914fe73f49a5@ec2-18-235-20-228.compute-1.amazonaws.com:5432/da9h6v89t4t3u3'
 
 print(ENV)
 
@@ -151,7 +152,7 @@ def user_signin():
           return jsonify({'message' : '{} not supplied'.format(attr)}), 404
     user_found = User.query.filter(User.name==name).first()
     user_found_dump = user_schema.dump(user_found)
-    print(len(user_found_dump), user_found_dump)
+    # print(len(user_found_dump), user_found_dump)
     if len(user_found_dump):
         if user_found_dump['password'] == password:
             return jsonify({'user' : user_found_dump['name'], 'message' : 'user signed in'}), 200
@@ -197,7 +198,7 @@ def add_report():
         report_found_dump = reports_schema.dump(report_found)
         for rep in report_found_dump:
             date_exist = rep['date'][8:10]
-            print(date_exist)
+            # print(date_exist)
 
             if date == date_exist:
                 return jsonify({'message' : 'record exist already'}), 404
@@ -255,13 +256,15 @@ def get_reports(page=1, pp=3):
     reportAll = PenRecord.query.order_by(PenRecord.date.desc()).all()
     reportCount = len(reports_schema.dump(reportAll))
  
-    print('report count {}, page {}, pages {}, last page report count {}'.format(reportCount, page, pp, math.floor(reportCount / pp), (reportCount % pp)))
+   
     if reportCount == 0:
-        return jsonify({ 'message' : 'No report available' }), 200
+        return jsonify({ 'message' : 'No report available' }), 404
     if reportCount % pp == 0:
         limit = math.floor(reportCount / pp)
     else:
         limit = math.floor(reportCount / pp) + 1
+
+    print('report count {}, page {}, perPage {}, pages {} last page report count {}'.format(reportCount, page, pp, limit, reportCount - ((limit - 1) * pp)))
     if(page > limit):
         return jsonify({ 'message' : 'No report available beyond this point', 'prev' : bool(1), 'next': bool(0) }), 400
   
@@ -270,6 +273,26 @@ def get_reports(page=1, pp=3):
     result = reports_schema.dump(reports)
     
     return jsonify({ 'data' : result, 'page' : page, 'pages' : limit, 'prev' : bool(page > 1), 'next': bool(limit - page) }), 200
+
+ 
+@app.route('/report/tag/<tag>', methods=['GET'])
+@app.route('/report/tag/<tag>/<int:page>/<int:pp>', methods=['GET'])
+def get_report_by_tag(tag, page = 1, pp = 6):
+    report_tag = PenRecord.query.filter(PenRecord.name==str(tag)).order_by(PenRecord.date.desc())
+    report_tag_dump = reports_schema.dump(report_tag)
+    # print(report_tag_dump)
+    reportCount = len(report_tag_dump)
+    if reportCount == 0:
+        return jsonify({ 'message' : 'No report available for {}'.format(tag) }), 404
+
+    
+    reports = report_tag.paginate(page, per_page=pp).items
+    result = reports_schema.dump(reports)
+    if reportCount % pp == 0:
+        limit = math.floor(reportCount / pp)
+    else:
+        limit = math.floor(reportCount / pp) + 1
+    return jsonify({ 'message' : 'reports for {}'.format(tag), 'data' : result, 'page' : page, 'pages' : limit, 'prev' : bool(page > 1), 'next': bool(limit - page) }), 200
 
  
 # Get single report
