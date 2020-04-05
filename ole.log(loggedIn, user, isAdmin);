@@ -1,0 +1,131 @@
+[33mcommit 362dcbd593be4e29ede87a5deb0fc7d6a25b631b[m[33m ([m[1;36mHEAD -> [m[1;32mmaster[m[33m, [m[1;31mheroku/master[m[33m)[m
+Author: obafemi oderanti <thevetdoctor.gmail.com>
+Date:   Thu Mar 26 22:30:17 2020 +0100
+
+    pg config updated
+
+[33mcommit 909d5853643cda980d1ed7605892ebcc905c251d[m
+Author: obafemi oderanti <thevetdoctor.gmail.com>
+Date:   Wed Mar 25 10:36:53 2020 +0100
+
+    seed data
+
+[33mcommit 5a079c3b5ef6eab945ef3d12fd960031dc37a6b5[m
+Author: obafemi oderanti <thevetdoctor.gmail.com>
+Date:   Tue Mar 24 20:13:53 2020 +0100
+
+    seed data
+
+[33mcommit ba5a9404de315454bbb367671db26b67cdc83a3a[m
+Author: obafemi oderanti <thevetdoctor.gmail.com>
+Date:   Fri Mar 20 23:54:28 2020 +0100
+
+    dev to prod for db
+
+[33mcommit 7641aeefc2b856b30afcf61d357f5febab9a78b0[m
+Author: obafemi oderanti <thevetdoctor.gmail.com>
+Date:   Fri Mar 20 23:46:01 2020 +0100
+
+    update limit and per page
+
+[33mcommit 1a0fb5debefa313481f200d632a1a2dda95fdcfe[m
+Author: obafemi oderanti <thevetdoctor.gmail.com>
+Date:   Thu Mar 19 22:43:11 2020 +0100
+
+    update
+
+[33mcommit 75588e1994986addffb1a8ebc4fcc28fb69582dd[m
+Author: obafemi oderanti <thevetdoctor.gmail.com>
+Date:   Sun Mar 15 22:38:52 2020 +0100
+
+    pagination
+
+[33mcommit 54c7cc4315fdd9ae099bb6d08724b2f6b3e4e53b[m
+Author: obafemi oderanti <thevetdoctor.gmail.com>
+Date:   Sun Mar 15 22:38:16 2020 +0100
+
+    pagination
+
+[33mcommit edafe7b1665e8044f2dadb2aeefaa0cde29b6264[m
+Author: obafemi oderanti <thevetdoctor.gmail.com>
+Date:   Sun Mar 15 17:10:23 2020 +0100
+
+    update pip lock
+
+[33mcommit f59649fde2a8785f854a402cf0be4c9e5da40cbb[m
+Author: obafemi oderanti <thevetdoctor.gmail.com>
+Date:   Sun Mar 15 16:20:00 2020 +0100
+
+    pagination & authentication
+
+[33mcommit 256e6d0f86a81e078703d56a636d5232a211af2e[m
+Author: obafemi oderanti <thevetdoctor.gmail.com>
+Date:   Sat Mar 14 14:38:22 2020 +0100
+
+    update post api logic
+
+[33mcommit 52f209687544c78984b291d2fd432698b0074ad0[m
+Author: obafemi oderanti <thevetdoctor.gmail.com>
+Date:   Wed Mar 11 17:32:27 2020 +0100
+
+    bug fixed(post double report)
+
+[33mcommit a312422802e537157981cc1830e4d095d5451b34[m
+Author: obafemi oderanti <thevetdoctor.gmail.com>
+Date:   Wed Mar 11 10:10:43 2020 +0100
+
+    cors enabled
+
+[33mcommit d69832b9f8e2ec95acdd95206586194fbe0d5d76[m
+Author: obafemi oderanti <thevetdoctor.gmail.com>
+Date:   Wed Mar 11 10:05:56 2020 +0100
+
+    cors enabled
+
+[33mcommit 3202e29da541a838eee2991639e37894af5ee650[m
+Author: obafemi oderanti <thevetdoctor.gmail.com>
+Date:   Mon Mar 9 22:41:07 2020 +0100
+
+    rollover
+
+[33mcommit 42705b1880d26036fc2c3bd321d84d76610a1f7d[m
+Author: obafemi oderanti <thevetdoctor.gmail.com>
+Date:   Mon Mar 9 22:30:10 2020 +0100
+
+    update endpoint logic2
+
+[33mcommit c4c95ceb1d66f451cb2f8cac90ff2fd4fe4ed9bb[m
+Author: obafemi oderanti <thevetdoctor.gmail.com>
+Date:   Mon Mar 9 22:22:39 2020 +0100
+
+    update endpoint logic1
+
+[33mcommit db007f10da31fb7969ae63abe764c57315bc7b4d[m
+Author: obafemi oderanti <thevetdoctor.gmail.com>
+Date:   Mon Mar 9 22:13:29 2020 +0100
+
+    update endpoint logic1
+
+[33mcommit 446e980ac239f9f8dbf2e3e0905be8bbd21a2bbd[m
+Author: obafemi oderanti <thevetdoctor.gmail.com>
+Date:   Mon Mar 9 22:05:03 2020 +0100
+
+    update endpoint logic
+
+[33mcommit a36bcf16d5ba56f33db390d7b619cffe231abeae[m
+Author: obafemi oderanti <thevetdoctor.gmail.com>
+Date:   Mon Mar 9 21:53:33 2020 +0100
+
+    update endpoint logic
+
+[33mcommit 64b804cef200323f04ab875e6969df8133f22b77[m
+Author: obafemi oderanti <thevetdoctor.gmail.com>
+Date:   Mon Mar 9 21:39:48 2020 +0100
+
+    update endpoint logic
+
+[33mcommit 4c17fe356d90a946e10113ce57f2b348b23bba6a[m
+Author: obafemi oderanti <thevetdoctor.gmail.com>
+Date:   Mon Mar 9 17:34:44 2020 +0100
+
+    initial upload

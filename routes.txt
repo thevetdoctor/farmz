@@ -1,0 +1,25 @@
+@app.route('/auth/createuser', methods=['POST'])
+@app.route('/auth/signin', methods=['POST'])
+@app.route('/auth/users', methods=['GET'])
+@app.route('/report', methods=['POST'])
+
+@app.route('/report', methods=['GET'])
+@app.route('/report/page/<int:page>/<int:pp>', methods=['GET'])
+
+@app.route('/report/tag/<tag>', methods=['GET'])
+@app.route('/report/tag/<tag>/<int:page>/<int:pp>', methods=['GET'])
+
+@app.route('/report/detail/<tag>', methods=['GET'])
+@app.route('/report/detail/<tag>/<int:days>', methods=['GET'])
+def get_report_by_details(tag = 'crack', days = 1):
+
+@app.route('/report/<id>', methods=['GET'])
+@app.route('/report/<id>', methods=['PUT'])
+@app.route('/report/<id>', methods=['DELETE'])
+@app.route('/seed/', methods=['GET', 'POST'])
+@app.route('/auth', methods=['GET'])
+@app.route('/refresh', methods=['GET'])
+@app.route('/clear', methods=['GET'])
+@app.route('/clearfeed', methods=['GET'])
+@app.route('/feed', methods=['GET'])
+@app.route('/feed/seed', methods=['GET'])

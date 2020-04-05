@@ -1,124 +1,20 @@
-from flask import Flask, flash, request, jsonify,render_template, redirect, url_for, make_response
-from werkzeug.utils import secure_filename
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask_sqlalchemy import SQLAlchemy
-from flask_marshmallow import Marshmallow
+from flask import request, jsonify,render_template, redirect, url_for, make_response
+from flaskresty import app, db
+from flaskresty.models import PenRecord, User, FeedStock, reports_schema, report_schema, users_schema, user_schema, feedstock_schema
 from functools import wraps
 from datetime import datetime, timedelta
-from flask_cors import CORS
-import jwt
-import math
-import os
-from seed import record as data, auth
-
-# print(os.environ['USERNAME'])
-
-app = Flask(__name__)
-
-CORS(app)
-
-# if os.environ.get('USERNAME') == 'ACER':
-#     ENV = 'dev'
-# else:
-ENV = 'dev'
-
-if ENV == 'dev':
-    app.debug = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:animalworld@localhost/flaskrest'
-else:
-    app.debug = False 
-    # app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://vxjxpdpdiwnrqw:55e5e567b888401056b662421a387e5e830a0a30fce8d64046f112d37b04135b@ec2-18-210-51-239.compute-1.amazonaws.com:5432/d5obp1t1cedffb'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://snnemmtjbvdsls:40e156cf3c697687901f8569071deff7cf0c307ad827f1f1ae24914fe73f49a5@ec2-18-235-20-228.compute-1.amazonaws.com:5432/da9h6v89t4t3u3'
-
-print(ENV)
-
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['secret'] = 'jwtsecret'
-
-db = SQLAlchemy(app)
-marsh = Marshmallow(app)
-
-
-class PenRecord(db.Model):
-    __tablename__ = 'penrecord'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50))
-    population = db.Column(db.Integer)
-    mortality = db.Column(db.Integer, default=0)
-    dressed = db.Column(db.Integer, default=0)
-    consumption = db.Column(db.Integer)
-    feedbrand = db.Column(db.String(20), default='olam')
-    production = db.Column(db.Integer)
-    jumbo = db.Column(db.Integer, default=0)
-    extra = db.Column(db.Integer, default=0)
-    large = db.Column(db.Integer, default=0)
-    small = db.Column(db.Integer, default=0)
-    pullet = db.Column(db.Integer, default=0)
-    crack = db.Column(db.Integer, default=0)
-    wastage = db.Column(db.Integer, default=0)
-    medication = db.Column(db.String(200), default='none')
-    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-
-    def __init__(self, name, population, mortality, dressed, consumption, feedbrand, production, jumbo, extra, large, small, pullet, crack, wastage, medication, date=None):
-        self.name = name
-        self.population = population
-        self.mortality = mortality
-        self.dressed = dressed
-        self.consumption = consumption
-        self.feedbrand = feedbrand
-        self.production = production
-        self.jumbo = jumbo
-        self.extra = extra
-        self.large = large
-        self.small = small
-        self.pullet = pullet
-        self.crack = crack
-        self.wastage = wastage
-        self.medication = medication
-        self.date = date
-
-
-class User(db.Model):
-    __tablename__ = 'user'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False)
-    password = db.Column(db.String(100), nullable=False)
-    admin = db.Column(db.Boolean(), default=False)
-    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-
-    def __init__(self, name, password, admin = False):
-        self.name = name
-        self.password = password
-        self.admin = admin
-
- 
-# Report Schema
-class ReportSchema(marsh.Schema):
-    class Meta:
-        fields = ('id', 'name', 'population', 'mortality', 'dressed', 'consumption', 'feedbrand', 'production', 'jumbo', 'extra', 'large', 'small', 'pullet', 'crack', 'wastage', 'medication', 'date')
-
-# user Schema
-class UserSchema(marsh.Schema):
-    class Meta:
-        fields = ('id', 'name', 'password', 'admin', 'date')
-
-# Init schema
-# report_schema = ReportSchema(strict=True)
-# reports_schema = ReportSchema(many=True, strict=True)
-report_schema = ReportSchema()
-reports_schema = ReportSchema(many=True)
-
-user_schema = UserSchema()
-users_schema = UserSchema(many=True)
+from flaskresty.seed import auth, dbase, feed_seed
+from werkzeug.security import generate_password_hash, check_password_hash
+import jwt, math
 
 c = datetime.utcnow()
-d = datetime(2020, 3, 12)
 
 # Root URL
 @app.route('/')
 def index():
     return jsonify({'message' : 'Welcome to Bafot Farms'}), 200
 
+# decorator function
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -132,8 +28,8 @@ def token_required(f):
             data = jwt.decode(token, app.config['secret'])
         except:
             return jsonify({'message' : 'invalid authorization'}), 403
-        print('data', data)
-        return f(*args, **kwargs)
+        # print('data', data)
+        return f(data, *args, **kwargs)
     return decorated
  
 # Create new user
@@ -162,7 +58,6 @@ def create_user():
     print(user_schema.dump(user))
     return jsonify({ 'data' : user_schema.dump(user), 'user' : user_schema.dump(user)['name'], 'message' : 'new user created'}), 201
 
-
 # Sign in user
 @app.route('/auth/signin', methods=['POST'])
 def user_signin():
@@ -176,21 +71,14 @@ def user_signin():
           return jsonify({'message' : '{} not supplied'.format(attr)}), 404
     user_found = User.query.filter(User.name==name).first()
     user_found_dump = user_schema.dump(user_found)
-    # print(len(user_found_dump), user_found_dump)
     if len(user_found_dump):
         pw = check_password_hash(user_found_dump['password'], password)
         if pw:
-            print(user_found_dump)
             user_found_dump['password'] = ''
-            print(user_found_dump)
-
             token = jwt.encode({'user' : user_found_dump, 'exp' : datetime.utcnow() +  timedelta(minutes=60)}, app.config['secret']) 
-            # print('yes') if not token else print('no') 
-            print(str(token))
-            return jsonify({'user' : user_found_dump['name'], 'message' : 'user signed in', 'token' : str(token)}), 200
+            return jsonify({'user' : user_found_dump['name'], 'isAdmin': user_found_dump['admin'], 'message' : 'user signed in', 'token' : str(token)}), 200
         return jsonify({'message' : 'invalid password'}), 404
     return jsonify({'message' : 'user not found'}), 404
-
     
 #Get all users
 @app.route('/auth/users', methods=['GET'])
@@ -198,11 +86,9 @@ def user_signin():
 def get_users():
     user_list = User.query.all()
     user_list_dump = users_schema.dump(user_list)
-    # print(user_list_dump)
     if len(user_list_dump):
         return jsonify({'users' : user_list_dump, 'number_of_users' : len(user_list_dump) }), 200
     return jsonify({'message' : 'No user found'}), 404
-    
 
 # Create new report
 @app.route('/report', methods=['POST'])
@@ -226,38 +112,42 @@ def add_report():
           return jsonify({'message' : '{} not supplied'.format(attr)}), 404
     if 'date' in request.json:
         date = request.json['date']
+        if len(date) <= 2:
+            return jsonify({ 'message': 'Date should be minimum of 2 digits!'}), 404
         population = request.json['population']
         report_found = PenRecord.query.filter(PenRecord.name==name).order_by(PenRecord.date.desc()).all()
         report_found_dump = reports_schema.dump(report_found)
         for rep in report_found_dump:
             date_exist = rep['date'][8:10]
-            # print(date_exist)
 
             if date == date_exist:
-                return jsonify({'message' : 'record exist already'}), 404
+                return jsonify({'message' : 'Record exist already'}), 404
 
         production = int(jumbo) + int(extra) + int(large) + int(small) + int(pullet) + int(crack) + int(wastage)
+        print(date, c.replace(month=3))
         report = PenRecord(name, population, mortality, dressed, consumption, feedbrand, production, jumbo, extra, large, small, pullet, crack, wastage, medication, date=c.replace(day=int(date)))
         db.session.add(report)
         db.session.commit()
         # print(report)
-        return jsonify(report_schema.dump(report)), 201
+        return jsonify({ 'data' : report_schema.dump(report), 'message' : 'New report created!'}), 201
 
     report_exist = PenRecord.query.filter(PenRecord.name==name).order_by(PenRecord.date.desc()).first()
     report_previous = PenRecord.query.filter(PenRecord.name==name).order_by(PenRecord.date.desc()).limit(2).all()
     report_exist_dump = report_schema.dump(report_exist)
     report_prev_dump = reports_schema.dump(report_previous)
-    # print(report_prev_dump, report_prev_dump[0]['population'])
+    print(len(report_prev_dump), len(report_prev_dump))
     x = datetime.now()
     
     if len(report_exist_dump) == 0:
-        print('No previous day report to get population!')
-        return jsonify({'message' : 'No previous day report to get population!'}), 404
+        print('No existing report to get population!')
+        return jsonify({'message' : 'No existing report to get population!'}), 404
     else:
-        # print(report_exist_dump['date'], x)
-        print(report_exist_dump['date'][8:10], x.strftime('%d'))
+        print(report_exist_dump['date'][8:10], report_exist_dump['date'][5:7], x.strftime('%d'), x.strftime('%m'))
+        if report_exist_dump['date'][5:7] != x.strftime('%m'):
+            return jsonify({'message' : 'Please fill missing records'}), 404
         if report_exist_dump['date'][8:10] == x.strftime('%d'):
-            return jsonify({'message' : 'pen already has a record'}), 404
+            print('pen already has a record')
+            return jsonify({'message' : 'Pen already has a record'}), 404
         # if len(report_prev_dump) == 2:
         elif int(x.strftime('%d')) - int(report_exist_dump['date'][8:10]) > int(1):
             return jsonify({'message' : 'Previous day report not available!'}), 404
@@ -267,29 +157,21 @@ def add_report():
             population = int(prev_pop) - int(prev_mort)
             production = int(jumbo) + int(extra) + int(large) + int(small) + int(pullet) + int(crack) + int(wastage)
              
-            new_report = PenRecord.query.order_by(PenRecord.date.desc()).first()
+            new_report = PenRecord(name, population, mortality, dressed, consumption, feedbrand, production, jumbo, extra, large, small, pullet, crack, wastage, medication)
+            db.session.add(new_report)
+            db.session.commit()
 
-            # print(report, new_report)
+            print(new_report)
         return jsonify({ 'data' : report_schema.dump(new_report), 'message' : 'New report created!'}), 201
-
 
 # Get all reports
 @app.route('/report', methods=['GET'])
 @app.route('/report/page/<int:page>/<int:pp>', methods=['GET'])
 # @token_required
 def get_reports(page=1, pp=3):
-    # try:
-    #     # reports = PenRecord.query.order_by(PenRecord.date.desc()).all()
-    #     reports = PenRecord.query.order_by(PenRecord.date.desc()).paginate(page, per_page=6)
-    #     result = reports_schema.dump(reports)
-    # except e:
-    #     flash('No report found!')
-    #     reports = None
-    #     result = reports_schema.dump(reports)
-
+    # print(data, 'hey')
     reportAll = PenRecord.query.order_by(PenRecord.date.desc()).all()
     reportCount = len(reports_schema.dump(reportAll))
- 
    
     if reportCount == 0:
         return jsonify({ 'message' : 'No report available' }), 404
@@ -308,7 +190,6 @@ def get_reports(page=1, pp=3):
     
     return jsonify({ 'data' : result, 'page' : page, 'pages' : limit, 'prev' : bool(page > 1), 'next': bool(limit - page) }), 200
 
- 
 # Get all reports (by tag)
 @app.route('/report/tag/<tag>', methods=['GET'])
 @app.route('/report/tag/<tag>/<int:page>/<int:pp>', methods=['GET'])
@@ -319,7 +200,6 @@ def get_report_by_tag(tag, page = 1, pp = 6):
     reportCount = len(report_tag_dump)
     if reportCount == 0:
         return jsonify({ 'message' : 'No report available for {}'.format(tag) }), 404
-
     
     reports = report_tag.paginate(page, per_page=pp).items
     result = reports_schema.dump(reports)
@@ -328,7 +208,6 @@ def get_report_by_tag(tag, page = 1, pp = 6):
     else:
         limit = math.floor(reportCount / pp) + 1
     return jsonify({ 'message' : 'reports for {}'.format(tag), 'data' : result, 'page' : page, 'pages' : limit, 'prev' : bool(page > 1), 'next': bool(limit - page) }), 200
-
 
 # Get details of reports (by tag & days)
 @app.route('/report/detail/<tag>', methods=['GET'])
@@ -344,15 +223,7 @@ def get_report_by_details(tag = 'crack', days = 1):
         return jsonify({ 'message' : 'No report available for {}'.format(tag) }), 404
     return jsonify({ 'message' : 'reportCount', 'data' : report_count_dump}), 200
   
-    # reports = report_tag.paginate(page, per_page=pp).items
-    # result = reports_schema.dump(reports)
-    # if reportCount % pp == 0:
-    #     limit = math.floor(reportCount / pp)
-    # else:
-    #     limit = math.floor(reportCount / pp) + 1
-    # return jsonify({ 'message' : 'reports for {}'.format(tag), 'data' : result, 'page' : page, 'pages' : limit, 'prev' : bool(page > 1), 'next': bool(limit - page) }), 200
-
- 
+   
 # Get single report
 @app.route('/report/<id>', methods=['GET'])
 def get_report(id):
@@ -362,7 +233,6 @@ def get_report(id):
         return jsonify({'message' : 'report not available!'}), 404
     
     return jsonify(report_schema.dump(report)), 200
-
 
 # Update single report
 @app.route('/report/<id>', methods=['PUT'])
@@ -386,13 +256,7 @@ def update_report(id):
     report.medication = medication
 
     db.session.commit()
-
-    # print(report)
-
-    # return report_schema.jsonify(report)
     return jsonify({'message' : 'report successfully updated'}), 204
-    # return make_response({'message' : 'report successfully updated'}, 204) 
-
 
 # Delete single report
 @app.route('/report/<id>', methods=['DELETE'])
@@ -408,8 +272,7 @@ def delete_report(id):
 
     return jsonify({'message' : 'report successfully deleted'}), 200
 
-print(len(data))
-@app.route('/seed', methods=['GET', 'POST'])
+@app.route('/seed/', methods=['GET', 'POST'])
 def seed():
     record_exist = PenRecord.query.all()
     record_dump = reports_schema.dump(record_exist)
@@ -417,24 +280,29 @@ def seed():
     if len(record_dump):
         return jsonify({ 'message' : 'DB already seeded!'})
    
-    for rep in data:
+    print('dbase :', len(dbase['data'])) 
+    # for rep in data:
+    for rep in dbase['data']:
         production = int(rep['jumbo'] + rep['extra'] + rep['large'] + rep['small'] + rep['pullet'] + rep['crack'] + rep['wastage'])
         
         consumption = math.floor(rep['population'] * .11 / 25)
-        # print('day {}, mortality {}, production {}, population {}, consumption {}, '.format(rep['date'][8:10], rep['mortality'], production, rep['population'], consumption))
 
-        dat = PenRecord(rep['name'], rep['population'], rep['mortality'], rep['dressed'], consumption, rep['feedbrand'], production, rep['jumbo'], rep['extra'], rep['large'], rep['small'], rep['pullet'], rep['crack'], rep['wastage'], rep['medication'], c.replace(day=int(rep['date'][8:10])))
-        db.session.add(dat)
+        month_input = int(rep['date'][5:7])
+        day_input = int(rep['date'][8:10])
+        current_date = c.replace(month=month_input, day=day_input)
+        # current_date = c.replace(day=day_input)
+        # print('day:', day_input,'month:', month_input, current_date)
+        data_unit = PenRecord(rep['name'], rep['population'], rep['mortality'], rep['dressed'], consumption, rep['feedbrand'], production, rep['jumbo'], rep['extra'], rep['large'], rep['small'], rep['pullet'], rep['crack'], rep['wastage'], rep['medication'], current_date)
+        db.session.add(data_unit)
         db.session.commit()
     return jsonify({ 'message' : 'seeding completed'})
-
 
 @app.route('/auth', methods=['GET'])
 def seed_auth():
     auth_exist = User.query.filter(User.name == 'oba').first()
     if auth_exist:
         return jsonify({ 'message' : 'auth already seeded'})
-    print(auth)
+    # print(auth)
     auth_pass = generate_password_hash('pass')
     create_auth = User(auth['name'], auth_pass, auth['admin'])
     db.session.add(create_auth)
@@ -454,5 +322,80 @@ def refresh_db():
 
     return jsonify({ 'message' : 'refresh completed'})
 
-if __name__ == '__main__':
-    app.run(debug = True)
+@app.route('/clear', methods=['GET'])
+def clear_db():
+    print('clearing')
+    db.drop_all()
+    print('dropped')
+    db.create_all()
+    return jsonify({ 'message' : 'DB cleared'})
+
+@app.route('/clearfeed', methods=['GET'])
+def clear_feed():
+    print('clearing feed table')
+    db.session.query(FeedStock).delete()
+    db.session.commit()
+    return jsonify({ 'message' : 'Feed table cleared'})
+
+#Get all feedstock
+@app.route('/feed', methods=['GET'])
+# @token_required
+def get_feedstock():
+    last_feed_received = db.session.query(FeedStock.name, FeedStock.quantity, FeedStock.date).group_by(FeedStock.quantity, FeedStock.name, FeedStock.date).order_by(FeedStock.name, FeedStock.date.desc()).all()
+    feed_received = db.session.query(FeedStock.name, db.func.sum(FeedStock.quantity)).group_by(FeedStock.name).all()
+    feed_consumed_tilldate = db.session.query(PenRecord.feedbrand, db.func.sum(PenRecord.consumption) * 25).group_by(PenRecord.feedbrand).all()
+    feed_consumed_daily = db.session.query(PenRecord.feedbrand, PenRecord.consumption, PenRecord.date).order_by(PenRecord.date.desc()).limit(6).all()
+    # print(feed_consumed_daily)
+    filtered = []
+    daily_feed = []
+    for f in feed_consumed_daily:
+        if f[0] not in filtered:
+            filtered.append(f[0])
+            daily_feed.append(f)
+    # print(daily_feed, filtered.index('olam layer1'))
+    list = []  
+    check = []
+    count = 0
+    for l in last_feed_received:
+        if l[0] not in check:
+            list.append(last_feed_received[count])
+            check.append(l[0])
+        count += 1
+    # print(list, check)
+    output = []
+    for i in feed_received:
+        x = { 'name': i[0], 'feed received': i[1], 'feed consumed': 0, 'daily consumption': 0 }
+        if i[0] in filtered:
+            x['daily consumption'] = daily_feed[filtered.index(i[0])][1]
+        for j in feed_consumed_tilldate:
+            if i[0] == j[0]:
+                x['feed consumed'] = j[1]
+            
+        output.append(x)
+    for r in output:
+        for p in list: 
+            if p[0] == r['name']:
+                obj = { 'quantity' : p[1], 'date': p[2] }
+                r['supplied'] = obj
+    # print(output)
+    if len(output):
+        return jsonify({'feedstock' : output}), 200
+    return jsonify({'message' : 'No feed in stock'}), 404
+
+@app.route('/feed/seed', methods=['GET'])
+def seed_feed():
+    feed_exist = FeedStock.query.all()
+    feed_exist_dump = feedstock_schema.dump(feed_exist)
+    if feed_exist_dump:
+        return jsonify({ 'message' : 'feedstock already seeded'})
+    for feed in feed_seed:
+        if 'date' not in feed:
+            seed_feedstock = FeedStock(feed['name'], feed['quantity'])
+            db.session.add(seed_feedstock)
+            db.session.commit()
+        else:
+            seed_feedstock = FeedStock(feed['name'], feed['quantity'], feed['date'])
+            db.session.add(seed_feedstock)
+            db.session.commit()
+    return jsonify({ 'message' : 'feedstock seeding completed', 'feedstock' : feed_exist_dump })
+    
